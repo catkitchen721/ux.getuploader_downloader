@@ -6,20 +6,21 @@ from dl_core.output_buffer import *
 # https://dl1.getuploader.com/g/token/websitename/num/filename.zip
 # https://ux.getuploader.com/websitename/download/num
 
-def out2buffer(s):
+def out2buffer(s, isCLI=False):
     print(s)
-    if len(outputBuf.get()) > 2048:
-        outputBuf.set('')
-    outputBuf.set(s + '\n' + outputBuf.get())
-    mainW.update()
+    if not isCLI:
+        if len(outputBuf.get()) > 2048:
+            outputBuf.set('')
+        outputBuf.set(s + '\n' + outputBuf.get())
+        mainW.update()
 
-def dl_submit(website_name, min_num, max_num, passwd='', exc_list=None):
-    out2buffer('request submitted.')
+def dl_submit(website_name, min_num, max_num, passwd='', isCLI=False, exc_list=None):
+    out2buffer('request submitted.', isCLI)
 
     dl_folder = '.\\downloads\\'
     
     if min_num > max_num:
-        out2buffer('\'from\' must <= \'to\'')
+        out2buffer('\'from\' must <= \'to\'', isCLI)
         return
 
     for i in range(min_num, max_num+1):
@@ -36,24 +37,24 @@ def dl_submit(website_name, min_num, max_num, passwd='', exc_list=None):
                 out2buffer('loaded OK: ' + main_url)
                 '''
             else:
-                out2buffer('Failed   : ' + main_url)
-                out2buffer('----')
+                out2buffer('Failed   : ' + main_url, isCLI)
+                out2buffer('----', isCLI)
                 continue
         except:
-            out2buffer('Failed   : ' + main_url)
-            out2buffer('----')
+            out2buffer('Failed   : ' + main_url, isCLI)
+            out2buffer('----', isCLI)
             continue
         htmltext = r.text
         soup = BeautifulSoup(htmltext, 'html.parser')
         filename = soup.find('p', attrs={'class':'space'}).find('strong').string
         if os.path.isfile(dl_folder + website_name + '\\' + filename):
             filename = str(time.time()) + '_' + filename
-        out2buffer('File name: ' + filename)
+        out2buffer('File name: ' + filename, isCLI)
         token = soup.find('div', attrs={'class':'text-center'})
         token = token.find('input', attrs={'name':'token'})
         if token == None:
-            out2buffer('Error: Maybe need password!')
-            out2buffer('----')
+            out2buffer('Error: Maybe need password!', isCLI)
+            out2buffer('----', isCLI)
             continue
         token = token['value']
         #out2buffer(token)
@@ -79,18 +80,18 @@ def dl_submit(website_name, min_num, max_num, passwd='', exc_list=None):
                     file_size = int(r.headers['Content-Length'])
 
                 if file_size < 1024 * 1024:
-                    out2buffer('File size: {:.2f}'.format(file_size/1024) + ' kb')
+                    out2buffer('File size: {:.2f}'.format(file_size/1024) + ' kb', isCLI)
                 elif file_size < 1024 * 1024 * 1024:
-                    out2buffer('File size: {:.2f}'.format(file_size/(1024*1024)) + ' mb')
+                    out2buffer('File size: {:.2f}'.format(file_size/(1024*1024)) + ' mb', isCLI)
                 else:
-                    out2buffer('File size: {:.2f}'.format(file_size/(1024*1024*1024)) + ' gb')
+                    out2buffer('File size: {:.2f}'.format(file_size/(1024*1024*1024)) + ' gb', isCLI)
             else:
-                out2buffer('Failed   : ' + used_url)
-                out2buffer('----')
+                out2buffer('Failed   : ' + used_url, isCLI)
+                out2buffer('----', isCLI)
                 continue
         except rq.RequestException:
-            out2buffer('Failed   : ' + used_url)
-            out2buffer('----')
+            out2buffer('Failed   : ' + used_url, isCLI)
+            out2buffer('----', isCLI)
             continue
         
         if not os.path.exists(dl_folder):
@@ -105,7 +106,7 @@ def dl_submit(website_name, min_num, max_num, passwd='', exc_list=None):
                     f.write(chk)
                     f.flush()
 
-        out2buffer('\'' + filename + '\' finished.')
-        out2buffer('----')
+        out2buffer('\'' + filename + '\' finished.', isCLI)
+        out2buffer('----', isCLI)
         
         

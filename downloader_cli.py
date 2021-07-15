@@ -1,4 +1,4 @@
-import dl_core.downloader as dl
+from dl_core.downloader import dl_submit
 
 print("Welcome to use ux.getuploader downloader!")
 username = input("Please input the target 'username':")
@@ -9,6 +9,6 @@ passwd = None
 if hasp == 'y' or hasp == 'Y':
     passwd = input("Please input the 'password':")
 if passwd is None:
-    dl.dl_submit(username, int(b), int(e))
+    dl_submit(username, int(b), int(e), isCLI=True)
 else:
-    dl.dl_submit(username, int(b), int(e), passwd)
+    dl_submit(username, int(b), int(e), passwd, isCLI=True)
