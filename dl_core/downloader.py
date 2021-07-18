@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests as rq
 import os
 import time
+import math
 from dl_core.output_buffer import *
 # https://dl1.getuploader.com/g/token/websitename/num/filename.zip
 # https://ux.getuploader.com/websitename/download/num
@@ -14,16 +15,62 @@ def out2buffer(s, isCLI=False):
         outputBuf.set(s + '\n' + outputBuf.get())
         mainW.update()
 
-def dl_submit(website_name, min_num, max_num, passwd='', isCLI=False, exc_list=None):
+def trans_ranking_range(min_num, max_num):
+    first_page = math.ceil(min_num / 15)
+    end_page = math.ceil(max_num / 15)
+    first_index = min_num - ((first_page - 1) * 15)
+    end_index = max_num - ((end_page - 1) * 15)
+    return first_page, first_index, end_page, end_index
+
+def get_ranking_list(website_name, min_num, max_num, isCLI=False, ranking_by='weekly'):
+    first_page, first_index, end_page, end_index = trans_ranking_range(min_num, max_num)
+    total_targets = []
+    for p in range(first_page, end_page+1):
+        main_url = 'https://ux.getuploader.com/'+ website_name +'/ranking/' + ranking_by + '/' + str(p)
+        try:
+            payload_age = {'q':'age_confirmation'}
+            hd = {'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'}
+            ses = rq.session()
+            ses.post(main_url, headers=hd, data=payload_age)
+            r = ses.post(main_url, headers=hd)
+            if r.status_code == rq.codes['ok']:
+                '''
+                out2buffer('loaded OK: ' + main_url, isCLI)
+                '''
+            else:
+                out2buffer('Failed   : ' + main_url, isCLI)
+                out2buffer('----', isCLI)
+                end_index = 15
+                break
+        except:
+            out2buffer('Failed   : ' + main_url, isCLI)
+            out2buffer('----', isCLI)
+            end_index = 15
+            break
+        htmltext = r.text
+        soup = BeautifulSoup(htmltext, 'html.parser')
+        targets = soup.find('table', attrs={'class':'table table-small-font table-hover'}).find('tbody')
+        targets = targets.find_all('tr')
+        targets = [int((target.find('a')['href'])[(target.find('a')['href']).rfind('/')+1:]) for target in targets]
+        total_targets.extend(targets)
+    total_targets = total_targets[(first_index-1):] if end_index == 15 else total_targets[(first_index-1):-(15-end_index)]
+    return total_targets
+
+def dl_submit(website_name, min_num, max_num, passwd='', isCLI=False, ranking=False, ranking_by='weekly'):
     out2buffer('request submitted.', isCLI)
 
     dl_folder = '.\\downloads\\'
     
-    if min_num > max_num:
+    if min_num > max_num or min_num < 0 or max_num < 0:
         out2buffer('\'from\' must <= \'to\'', isCLI)
         return
 
-    for i in range(min_num, max_num+1):
+    if not ranking:
+        l = range(min_num, max_num+1)
+    else:
+        l = get_ranking_list(website_name, min_num, max_num, isCLI, ranking_by)
+
+    for i in l:
         main_url = 'https://ux.getuploader.com/'+ website_name +'/download/' + str(i)
         try:
             payload_age = {'q':'age_confirmation'}
